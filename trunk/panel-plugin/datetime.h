@@ -60,6 +60,7 @@ typedef struct {
   gchar *time_font;
   gchar *date_format;
   gchar *time_format;
+  gchar *startofweek
   t_layout layout;
 
   /* option widgets */
@@ -79,6 +80,10 @@ typedef struct {
   GtkWidget *time_font_selector;
   GtkWidget *time_format_combobox;
   GtkWidget *time_format_entry;
+  
+  GtkWidget *startofweek_frame;
+  GtkWidget *startofweek_format_combobox;
+  GtkWidget *startofweek_format_entry;
 
   /* popup calendar */
   GtkWidget *cal;

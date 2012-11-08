@@ -26,6 +26,7 @@
 /* local includes */
 #include <time.h>
 #include <string.h>
+#include <stdio.h>
 
 /* xfce includes */
 #include <libxfcegui4/libxfcegui4.h>
@@ -37,6 +38,19 @@
 #include "datetime-dialog.h"
 
 #define DATETIME_MAX_STRLEN 256
+
+typedef struct _CalendarData {
+  GtkWidget *flag_checkboxes[5];
+  gboolean  settings[5];
+  GtkWidget *font_dialog;
+  GtkWidget *window;
+  GtkWidget *prev2_sig;
+  GtkWidget *prev_sig;
+  GtkWidget *last_sig;
+  GtkWidget *month;
+} CalendarData;
+
+  GtkWidget *cal;
 
 /**
  *  Convert a GTimeVal to milliseconds.
@@ -338,14 +352,44 @@ static gboolean close_calendar_window(t_datetime *datetime)
   return TRUE;
 }
 
+static void calendar_day_selected( GtkWidget    *widget,
+                                   CalendarData *data )
+{
+  FILE *in;
+  extern FILE *popen();
+  char buffer[256] = "day_selected: ";
+  guint year, month, day;
+  gtk_calendar_get_date (cal, &year, &month, &day);
+  /*calendar_date_to_string (data, buffer + 14, 256 - 14);
+  calendar_set_signal_strings (buffer, data);*/
+  snprintf(buffer,sizeof buffer,"/usr/bin/chromium-browser --app='https://www.google.com/calendar/render?tab=mc&date=%d%d%d'",year,month,day);
+  /*in = popen("/usr/bin/chromium-browser --app=https://www.google.com/calendar/render?tab=mc&date=","r");*/
+  in = popen(buffer,"r");
+
+}
+
+static void calendar_date_to_string( CalendarData *data,
+                                     char         *buffer,
+                                     gint          buff_len )
+{
+  GDate date;
+  guint year, month, day;
+
+  gtk_calendar_get_date (GTK_CALENDAR (data->window),
+			 &year, &month, &day);
+  g_date_set_dmy (&date, day, month + 1, year);
+  g_date_strftime (buffer, buff_len - 1, "%x", &date);
+
+}
+
 /*
  * call the gtk calendar
  */
 static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
 {
+  static CalendarData calendar_data;
   GtkWidget *window;
   GtkWidget *frame;
-  GtkWidget *cal;
   GtkWidget *parent = datetime->button;
   GdkScreen *screen;
   GtkCalendarDisplayOptions display_options;
@@ -357,7 +401,6 @@ static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
   gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
   gtk_window_stick(GTK_WINDOW(window));
   g_object_set_data(G_OBJECT(window), "calendar-parent", parent);
-
   /* set screen number */
   screen = gtk_widget_get_screen(parent);
   num = gdk_screen_get_monitor_at_window(screen, parent->window);
@@ -370,7 +413,7 @@ static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
   cal = gtk_calendar_new();
   display_options = GTK_CALENDAR_SHOW_HEADING |
     GTK_CALENDAR_SHOW_WEEK_NUMBERS |
-    GTK_CALENDAR_SHOW_DAY_NAMES;
+    GTK_CALENDAR_SHOW_DAY_NAMES | GTK_CALENDAR_WEEK_START_MONDAY;
   gtk_calendar_display_options(GTK_CALENDAR (cal), display_options);
   gtk_container_add (GTK_CONTAINER(frame), cal);
 
@@ -380,6 +423,9 @@ static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
   g_signal_connect_swapped(G_OBJECT(window), "delete-event",
       G_CALLBACK(close_calendar_window),
       datetime);
+  g_signal_connect(cal, "day_selected",
+      G_CALLBACK (calendar_day_selected),
+      &calendar_data);
   gtk_widget_show_all(window);
 
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(datetime->button), TRUE);

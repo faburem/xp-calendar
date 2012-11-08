@@ -649,7 +649,7 @@ datetime_properties_dialog(XfcePanelPlugin *plugin, t_datetime * datetime)
    /*
    * startofweek frame
    */
-  datetime->time_frame = xfce_create_framebox(_("Start of week"), &bin);
+  datetime->startofweek_frame = xfce_create_framebox(_("Start of week"), &bin);
   gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox), datetime->startofweek_frame,
       FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(datetime->startofweek_frame), 6);

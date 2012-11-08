@@ -97,6 +97,12 @@ static const dt_combobox_item dt_combobox_time[] = {
 };
 #define DT_COMBOBOX_TIME_COUNT (sizeof(dt_combobox_time)/sizeof(dt_combobox_item))
 
+static const dt_combobox_item dt_combobox_startofweek[] = {
+  { "Monday",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "Sunday",         DT_COMBOBOX_ITEM_TYPE_STANDARD  }
+};
+#define DT_COMBOBOX_TIME_COUNT (sizeof(dt_combobox_time)/sizeof(dt_combobox_item))
+
 /*
  * Example timestamp to show in the dialog.
  * Compute with:
@@ -271,6 +277,33 @@ date_format_changed(GtkComboBox *cbox, t_datetime *dt)
  */
 static void
 time_format_changed(GtkComboBox *cbox, t_datetime *dt)
+{
+  const gint active = gtk_combo_box_get_active(cbox);
+
+  switch(dt_combobox_time[active].type)
+  {
+    case DT_COMBOBOX_ITEM_TYPE_STANDARD:
+      /* hide custom text entry box and tell datetime which format is selected */
+      gtk_widget_hide(dt->time_format_entry);
+      datetime_apply_format(dt, NULL, dt_combobox_time[active].item);
+      break;
+    case DT_COMBOBOX_ITEM_TYPE_CUSTOM:
+      /* initialize custom text entry box with current format and show the box */
+      gtk_entry_set_text(GTK_ENTRY(dt->time_format_entry), dt->time_format);
+      gtk_widget_show(dt->time_format_entry);
+      break;
+    default:
+      break; /* separators should never be active */
+  }
+
+  datetime_update(dt);
+}
+
+/*
+ * Read start of week from combobox and set sensitivity
+ */
+static void
+startofweek_format_changed(GtkComboBox *cbox, t_datetime *dt)
 {
   const gint active = gtk_combo_box_get_active(cbox);
 

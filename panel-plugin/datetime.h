@@ -48,6 +48,7 @@ typedef struct {
   GtkWidget *vbox;
   GtkWidget *date_label;
   GtkWidget *time_label;
+  GtkWidget *startofweek_label;
   guint update_interval;  /* time between updates in milliseconds */
   guint timeout_id;
 #if USE_GTK_TOOLTIP_API
@@ -60,7 +61,8 @@ typedef struct {
   gchar *time_font;
   gchar *date_format;
   gchar *time_format;
-  gchar *startofweek
+//  add new start of week setting
+  gchar *startofweek;
   t_layout layout;
 
   /* option widgets */
@@ -80,8 +82,12 @@ typedef struct {
   GtkWidget *time_font_selector;
   GtkWidget *time_format_combobox;
   GtkWidget *time_format_entry;
-  
+//  add new start of week widgets
+#if USE_GTK_TOOLTIP_API
+  GtkWidget *startofweek_tooltip_label;
+#endif
   GtkWidget *startofweek_frame;
+  GtkWidget *startofweek_hbox;
   GtkWidget *startofweek_format_combobox;
   GtkWidget *startofweek_format_entry;
 
@@ -105,7 +111,8 @@ datetime_apply_font(t_datetime *datetime,
 void
 datetime_apply_format(t_datetime *datetime,
     const gchar *date_format,
-    const gchar *time_format);
+    const gchar *time_format,
+    const gchar *startofweek);
 
 void
 datetime_apply_layout(t_datetime *datetime,

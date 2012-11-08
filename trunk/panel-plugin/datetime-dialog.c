@@ -54,7 +54,7 @@ typedef enum {
   DT_COMBOBOX_ITEM_TYPE_CUSTOM,
 
   /* inactive separator */
-  DT_COMBOBOX_ITEM_TYPE_SEPARATOR,
+  DT_COMBOBOX_ITEM_TYPE_SEPARATOR
 
 } dt_combobox_item_type;
 
@@ -258,7 +258,7 @@ date_format_changed(GtkComboBox *cbox, t_datetime *dt)
     case DT_COMBOBOX_ITEM_TYPE_STANDARD:
       /* hide custom text entry box and tell datetime which format is selected */
       gtk_widget_hide(dt->date_format_entry);
-      datetime_apply_format(dt, dt_combobox_date[active].item, NULL);
+      datetime_apply_format(dt, dt_combobox_date[active].item, NULL, NULL);
       break;
     case DT_COMBOBOX_ITEM_TYPE_CUSTOM:
       /* initialize custom text entry box with current format and show the box */
@@ -285,7 +285,7 @@ time_format_changed(GtkComboBox *cbox, t_datetime *dt)
     case DT_COMBOBOX_ITEM_TYPE_STANDARD:
       /* hide custom text entry box and tell datetime which format is selected */
       gtk_widget_hide(dt->time_format_entry);
-      datetime_apply_format(dt, NULL, dt_combobox_time[active].item);
+      datetime_apply_format(dt, NULL, dt_combobox_time[active].item, NULL);
       break;
     case DT_COMBOBOX_ITEM_TYPE_CUSTOM:
       /* initialize custom text entry box with current format and show the box */
@@ -303,25 +303,12 @@ time_format_changed(GtkComboBox *cbox, t_datetime *dt)
  * Read start of week from combobox and set sensitivity
  */
 static void
-startofweek_format_changed(GtkComboBox *cbox, t_datetime *dt)
+startofweek_changed(GtkComboBox *cbox, t_datetime *dt)
 {
   const gint active = gtk_combo_box_get_active(cbox);
 
-  switch(dt_combobox_time[active].type)
-  {
-    case DT_COMBOBOX_ITEM_TYPE_STANDARD:
-      /* hide custom text entry box and tell datetime which format is selected */
-      gtk_widget_hide(dt->time_format_entry);
-      datetime_apply_format(dt, NULL, dt_combobox_time[active].item);
-      break;
-    case DT_COMBOBOX_ITEM_TYPE_CUSTOM:
-      /* initialize custom text entry box with current format and show the box */
-      gtk_entry_set_text(GTK_ENTRY(dt->time_format_entry), dt->time_format);
-      gtk_widget_show(dt->time_format_entry);
-      break;
-    default:
-      break; /* separators should never be active */
-  }
+      gtk_widget_hide(dt->startofweek_format_entry);
+      datetime_apply_format(dt, NULL,NULL, dt_combobox_startofweek[active].item);
 
   datetime_update(dt);
 }
@@ -337,9 +324,9 @@ datetime_entry_change_cb(GtkWidget *widget, GdkEventFocus *ev, t_datetime *dt)
   if (format != NULL)
   {
     if(widget == dt->date_format_entry)         /* date */
-      datetime_apply_format(dt, format, NULL);
+      datetime_apply_format(dt, format, NULL, NULL);
     else if(widget == dt->time_format_entry)    /* or time */
-      datetime_apply_format(dt, NULL, format);
+      datetime_apply_format(dt, NULL, format, NULL);
   }
   datetime_update(dt);
   return FALSE;
@@ -390,6 +377,7 @@ datetime_properties_dialog(XfcePanelPlugin *plugin, t_datetime * datetime)
             *layout_combobox,
             *time_combobox,
             *date_combobox,
+            *startofweek_combobox,
             *label,
             *button,
             *entry,
@@ -658,6 +646,62 @@ datetime_properties_dialog(XfcePanelPlugin *plugin, t_datetime * datetime)
 
   gtk_widget_show_all(datetime->time_frame);
 
+   /*
+   * startofweek frame
+   */
+  datetime->time_frame = xfce_create_framebox(_("Start of week"), &bin);
+  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox), datetime->startofweek_frame,
+      FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(datetime->startofweek_frame), 6);
+
+  /* vbox */
+  vbox = gtk_vbox_new(FALSE, 8);
+  gtk_container_add(GTK_CONTAINER(bin),vbox);
+
+#if USE_GTK_TOOLTIP_API
+  /* tooltip label */
+  str = g_markup_printf_escaped("<span style=\"italic\">%s</span>",
+                                _("The Start of week will appear in a tooltip."));
+  datetime->time_tooltip_label = gtk_label_new(str);
+  g_free(str);
+  gtk_label_set_use_markup(GTK_LABEL(datetime->startofweek_tooltip_label), TRUE);
+  gtk_misc_set_alignment(GTK_MISC(datetime->startofweek_tooltip_label), 0.0f, 0.0f);
+  gtk_box_pack_start(GTK_BOX(vbox), datetime->startofweek_tooltip_label, FALSE, FALSE, 0);
+#endif
+
+  /* hbox */
+  hbox = gtk_hbox_new(FALSE, 2);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+
+  /* format label */
+  label = gtk_label_new(_("Day:"));
+  gtk_misc_set_alignment(GTK_MISC (label), 0, 0.5);
+  gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+  gtk_size_group_add_widget(sg, label);
+
+  /* format combobox */
+  time_combobox = gtk_combo_box_new_text();
+  gtk_box_pack_start(GTK_BOX(hbox), startofweek_combobox, TRUE, TRUE, 0);
+
+  g_signal_connect(G_OBJECT(startofweek_combobox), "changed",
+      G_CALLBACK(startofweek_changed), datetime);
+  datetime->startofweek_format_combobox = startofweek_combobox;
+
+  /* hbox */
+  hbox = gtk_hbox_new(FALSE, 2);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+
+  /* format entry */
+  entry = gtk_entry_new();
+  gtk_entry_set_text(GTK_ENTRY(entry), datetime->startofweek);
+  gtk_box_pack_end(GTK_BOX(hbox), entry, FALSE, FALSE, 0);
+  g_signal_connect (G_OBJECT(entry), "focus-out-event",
+                    G_CALLBACK (datetime_entry_change_cb), datetime);
+  datetime->startofweek_format_entry = entry;
+
+  gtk_widget_show_all(datetime->startofweek_frame);
+  
+
   /* We're done! */
   g_signal_connect(dlg, "response",
       G_CALLBACK(datetime_dialog_response), datetime);
@@ -666,7 +710,7 @@ datetime_properties_dialog(XfcePanelPlugin *plugin, t_datetime * datetime)
   datetime_layout_changed(GTK_COMBO_BOX(layout_combobox), datetime);
   date_format_changed(GTK_COMBO_BOX(date_combobox), datetime);
   time_format_changed(GTK_COMBO_BOX(time_combobox), datetime);
-
+  startofweek_changed(GTK_COMBO_BOX(startofweek_combobox), datetime);
   /* show dialog */
   gtk_widget_show(dlg);
 }

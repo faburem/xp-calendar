@@ -363,7 +363,7 @@ static void calendar_day_selected( GtkWidget    *widget,
   /*calendar_date_to_string (data, buffer + 14, 256 - 14);
   calendar_set_signal_strings (buffer, data);*/
   //snprintf(buffer,sizeof buffer,"/usr/bin/chromium-browser --app='https://www.google.com/calendar/render?tab=mc&date=%d%d%d'",year,month,day);
-  snprintf(buffer,sizeof buffer,"exo-open --launch WebBrowser 'https://www.google.com/calendar/render?tab=mc&date=%d%d%d'",year,month+1,day);
+  snprintf(buffer,sizeof buffer,"exo-open --launch WebBrowser 'https://www.google.com/calendar/render?tab=mc&date=%d%d%02d'",year,month+1,day);
   /*in = popen("/usr/bin/chromium-browser --app=https://www.google.com/calendar/render?tab=mc&date=","r");*/
   //Todo: replace with g_spawn_command_line_async
   //in = popen(buffer,"r");

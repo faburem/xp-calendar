@@ -44,6 +44,10 @@ static const gchar *layout_strs[] = {
   N_("Date only"),
   N_("Time only")
 };
+static const gchar *startofweek_strs[] = {
+  N_("Monday"),
+  N_("Sunday")
+};
 
 typedef enum {
 
@@ -101,7 +105,7 @@ static const dt_combobox_item dt_combobox_startofweek[] = {
   { "Monday",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
   { "Sunday",         DT_COMBOBOX_ITEM_TYPE_STANDARD  }
 };
-#define DT_COMBOBOX_TIME_COUNT (sizeof(dt_combobox_time)/sizeof(dt_combobox_item))
+#define DT_COMBOBOX_STARTOFWEEK_COUNT (sizeof(dt_combobox_startofweek)/sizeof(dt_combobox_startofweek))
 
 /*
  * Example timestamp to show in the dialog.
@@ -327,6 +331,8 @@ datetime_entry_change_cb(GtkWidget *widget, GdkEventFocus *ev, t_datetime *dt)
       datetime_apply_format(dt, format, NULL, NULL);
     else if(widget == dt->time_format_entry)    /* or time */
       datetime_apply_format(dt, NULL, format, NULL);
+    else if(widget == dt->startofweek_format_entry)
+      datetime_apply_format(dt,NULL,NULL,format);
   }
   datetime_update(dt);
   return FALSE;
@@ -649,58 +655,100 @@ datetime_properties_dialog(XfcePanelPlugin *plugin, t_datetime * datetime)
    /*
    * startofweek frame
    */
-  datetime->startofweek_frame = xfce_create_framebox(_("Start of week"), &bin);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox), datetime->startofweek_frame,
+/*  datetime->startofweek_frame = xfce_create_framebox(_("Start of week"), &bin);*/
+/*  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox), datetime->startofweek_frame,*/
+/*      FALSE, FALSE, 0);*/
+/*  gtk_container_set_border_width(GTK_CONTAINER(datetime->startofweek_frame), 6);*/
+
+  /* vbox */
+/*  vbox = gtk_vbox_new(FALSE, 8);*/
+/*  gtk_container_add(GTK_CONTAINER(bin),vbox);*/
+
+/*#if USE_GTK_TOOLTIP_API*/
+  /* tooltip label */
+/*  str = g_markup_printf_escaped("<span style=\"italic\">%s</span>",*/
+/*                                _("The Start of week will appear in a tooltip."));*/
+/*  datetime->startofweek_tooltip_label = gtk_label_new(str);*/
+/*  g_free(str);*/
+/*  gtk_label_set_use_markup(GTK_LABEL(datetime->startofweek_tooltip_label), TRUE);*/
+/*  gtk_misc_set_alignment(GTK_MISC(datetime->startofweek_tooltip_label), 0.0f, 0.0f);*/
+/*  gtk_box_pack_start(GTK_BOX(vbox), datetime->startofweek_tooltip_label, FALSE, FALSE, 0);*/
+/*#endif*/
+
+  /* hbox */
+/*  hbox = gtk_hbox_new(FALSE, 2);*/
+/*  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);*/
+
+  /* format label */
+/*  label = gtk_label_new(_("Day:"));*/
+/*  gtk_misc_set_alignment(GTK_MISC (label), 0, 0.5);*/
+/*  gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);*/
+/*  gtk_size_group_add_widget(sg, label);*/
+
+  /* format combobox */
+/*  startofweek_combobox = gtk_combo_box_new_text();*/
+/*  gtk_box_pack_start(GTK_BOX(hbox), startofweek_combobox, TRUE, TRUE, 0);*/
+
+/*  g_signal_connect(G_OBJECT(startofweek_combobox), "changed",*/
+/*      G_CALLBACK(startofweek_changed), datetime);*/
+/*  datetime->startofweek_format_combobox = startofweek_combobox;*/
+
+  /* hbox */
+/*  hbox = gtk_hbox_new(FALSE, 2);*/
+/*  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);*/
+
+  /* format entry */
+/*  entry = gtk_entry_new();*/
+/*  gtk_entry_set_text(GTK_ENTRY(entry), datetime->startofweek);*/
+/*  gtk_box_pack_end(GTK_BOX(hbox), entry, FALSE, FALSE, 0);*/
+/*  g_signal_connect (G_OBJECT(entry), "focus-out-event",*/
+/*                    G_CALLBACK (datetime_entry_change_cb), datetime);*/
+/*  datetime->startofweek_format_entry = entry;*/
+
+/*  gtk_widget_show_all(datetime->startofweek_frame);*/
+  
+/*
+   * startofweek frame (new)
+   */
+  frame = xfce_create_framebox(_("Start of Week"), &bin);
+  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox), frame,
       FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(datetime->startofweek_frame), 6);
+  gtk_container_set_border_width(GTK_CONTAINER(frame), 6);
 
   /* vbox */
   vbox = gtk_vbox_new(FALSE, 8);
   gtk_container_add(GTK_CONTAINER(bin),vbox);
 
-#if USE_GTK_TOOLTIP_API
-  /* tooltip label */
-  str = g_markup_printf_escaped("<span style=\"italic\">%s</span>",
-                                _("The Start of week will appear in a tooltip."));
-  datetime->time_tooltip_label = gtk_label_new(str);
-  g_free(str);
-  gtk_label_set_use_markup(GTK_LABEL(datetime->startofweek_tooltip_label), TRUE);
-  gtk_misc_set_alignment(GTK_MISC(datetime->startofweek_tooltip_label), 0.0f, 0.0f);
-  gtk_box_pack_start(GTK_BOX(vbox), datetime->startofweek_tooltip_label, FALSE, FALSE, 0);
-#endif
-
   /* hbox */
   hbox = gtk_hbox_new(FALSE, 2);
   gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
 
-  /* format label */
+  /* Format label */
   label = gtk_label_new(_("Day:"));
   gtk_misc_set_alignment(GTK_MISC (label), 0, 0.5);
   gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
   gtk_size_group_add_widget(sg, label);
 
-  /* format combobox */
-  time_combobox = gtk_combo_box_new_text();
+  /* Layout combobox */
+  startofweek_combobox = gtk_combo_box_new_text();
   gtk_box_pack_start(GTK_BOX(hbox), startofweek_combobox, TRUE, TRUE, 0);
+  /*TODO: replace this stupid hardcoding (2) with the actual array size  */
+  for(i=0; i < 2; i++)
+    gtk_combo_box_append_text(GTK_COMBO_BOX(startofweek_combobox), _(startofweek_strs[i]));
 
+  if (strcmp(datetime->startofweek,"Monday")==0)
+  {
+  gtk_combo_box_set_active(GTK_COMBO_BOX(startofweek_combobox), 0);
+  }
+  else
+  {
+  gtk_combo_box_set_active(GTK_COMBO_BOX(startofweek_combobox), 1);
+  }
   g_signal_connect(G_OBJECT(startofweek_combobox), "changed",
       G_CALLBACK(startofweek_changed), datetime);
-  datetime->startofweek_format_combobox = startofweek_combobox;
 
-  /* hbox */
-  hbox = gtk_hbox_new(FALSE, 2);
-  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
-
-  /* format entry */
-  entry = gtk_entry_new();
-  gtk_entry_set_text(GTK_ENTRY(entry), datetime->startofweek);
-  gtk_box_pack_end(GTK_BOX(hbox), entry, FALSE, FALSE, 0);
-  g_signal_connect (G_OBJECT(entry), "focus-out-event",
-                    G_CALLBACK (datetime_entry_change_cb), datetime);
-  datetime->startofweek_format_entry = entry;
-
-  gtk_widget_show_all(datetime->startofweek_frame);
-  
+  /* show frame */
+  gtk_widget_show_all(frame);
 
   /* We're done! */
   g_signal_connect(dlg, "response",

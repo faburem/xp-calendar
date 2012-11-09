@@ -50,8 +50,7 @@ typedef struct _CalendarData {
   GtkWidget *month;
 } CalendarData;
 
-  GtkWidget *cal;
-
+  GtkCalendar *cal;
 /**
  *  Convert a GTimeVal to milliseconds.
  *  Fractions of a millisecond are truncated.
@@ -359,28 +358,19 @@ static void calendar_day_selected( GtkWidget    *widget,
   extern FILE *popen();
   char buffer[256] = "day_selected: ";
   guint year, month, day;
+  gboolean result;
   gtk_calendar_get_date (cal, &year, &month, &day);
   /*calendar_date_to_string (data, buffer + 14, 256 - 14);
   calendar_set_signal_strings (buffer, data);*/
-  snprintf(buffer,sizeof buffer,"/usr/bin/chromium-browser --app='https://www.google.com/calendar/render?tab=mc&date=%d%d%d'",year,month,day);
+  //snprintf(buffer,sizeof buffer,"/usr/bin/chromium-browser --app='https://www.google.com/calendar/render?tab=mc&date=%d%d%d'",year,month,day);
+  snprintf(buffer,sizeof buffer,"exo-open --launch WebBrowser 'https://www.google.com/calendar/render?tab=mc&date=%d%d%d'",year,month+1,day);
   /*in = popen("/usr/bin/chromium-browser --app=https://www.google.com/calendar/render?tab=mc&date=","r");*/
   //Todo: replace with g_spawn_command_line_async
-  in = popen(buffer,"r");
+  //in = popen(buffer,"r");
+  result = g_spawn_command_line_async(buffer, NULL);
 
-}
-
-static void calendar_date_to_string( CalendarData *data,
-                                     char         *buffer,
-                                     gint          buff_len )
-{
-  GDate date;
-  guint year, month, day;
-
-  gtk_calendar_get_date (GTK_CALENDAR (data->window),
-			 &year, &month, &day);
-  g_date_set_dmy (&date, day, month + 1, year);
-  g_date_strftime (buffer, buff_len - 1, "%x", &date);
-
+  if (G_UNLIKELY(result == FALSE))
+     g_warning(_("Unable to open the following url: %s"), buffer);
 }
 
 /*
@@ -388,6 +378,7 @@ static void calendar_date_to_string( CalendarData *data,
  */
 static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
 {
+  fprintf(stderr,"pop_calendar_window called with %s",datetime->startofweek);
   static CalendarData calendar_data;
   GtkWidget *window;
   GtkWidget *frame;
@@ -412,20 +403,12 @@ static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
   gtk_container_add (GTK_CONTAINER(window), frame);
 
   cal = gtk_calendar_new();
-  if (strcmp(datetime->startofweek,"Monday")==0)
-  {
-    display_options = GTK_CALENDAR_SHOW_HEADING |
-    GTK_CALENDAR_SHOW_WEEK_NUMBERS |
-    GTK_CALENDAR_SHOW_DAY_NAMES | GTK_CALENDAR_WEEK_START_MONDAY;
-  }
-  else 
-  {
     display_options = GTK_CALENDAR_SHOW_HEADING |
     GTK_CALENDAR_SHOW_WEEK_NUMBERS |
     GTK_CALENDAR_SHOW_DAY_NAMES;
-  }
+
   gtk_calendar_display_options(GTK_CALENDAR (cal), display_options);
-  gtk_container_add (GTK_CONTAINER(frame), cal);
+  gtk_container_add (GTK_CONTAINER(frame), GTK_CALENDAR (cal));
 
   g_signal_connect_after(G_OBJECT(window), "realize",
       G_CALLBACK(on_calendar_realized),
@@ -433,7 +416,7 @@ static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
   g_signal_connect_swapped(G_OBJECT(window), "delete-event",
       G_CALLBACK(close_calendar_window),
       datetime);
-  g_signal_connect(cal, "day_selected",
+  g_signal_connect(GTK_CALENDAR (cal), "day_selected",
       G_CALLBACK (calendar_day_selected),
       &calendar_data);
   gtk_widget_show_all(window);
@@ -670,6 +653,7 @@ static void datetime_read_rc_file(XfcePanelPlugin *plugin, t_datetime *dt)
   time_font = "Bitstream Vera Sans 8";
   date_format = "%Y-%m-%d";
   time_format = "%H:%M";
+  startofweek = "Sunday";
 
   /* open file */
   if((file = xfce_panel_plugin_lookup_rc_file(plugin)) != NULL)
@@ -818,7 +802,6 @@ static void datetime_free(XfcePanelPlugin *plugin, t_datetime *datetime)
   g_free(datetime->time_font);
   g_free(datetime->date_format);
   g_free(datetime->time_format);
-
   panel_slice_free(t_datetime, datetime);
 }
 

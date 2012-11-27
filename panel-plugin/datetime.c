@@ -3,6 +3,7 @@
  *  Copyright (C) 2003 Choe Hwanjin(krisna@kldp.org)
  *  Copyright (c) 2006 Remco den Breeje <remco@sx.mine.nu>
  *  Copyright (c) 2008 Diego Ongaro <ongardie@gmail.com>
+ *  Copyright (c) 2012 Fabian Kromer <fabian.kromer@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Library General Public License as published
@@ -378,13 +379,18 @@ static void calendar_day_selected( GtkWidget    *widget,
  */
 static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
 {
-  fprintf(stderr,"pop_calendar_window called with %s",datetime->startofweek);
+  fprintf(stderr,"pop_calendar_window called with %s",datetime->time_diff);
   static CalendarData calendar_data;
   GtkWidget *window;
   GtkWidget *frame;
   GtkWidget *parent = datetime->button;
   GdkScreen *screen;
+  GtkWidget *hbox;
+  GtkWidget *worldclock;
   GtkCalendarDisplayOptions display_options;
+  gchar *utf8str;
+  GTimeVal timeval;
+  struct tm *current;
   int num;
 
   window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -400,7 +406,32 @@ static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
 
   frame = gtk_frame_new(NULL);
   gtk_frame_set_shadow_type (GTK_FRAME(frame), GTK_SHADOW_OUT);
-  gtk_container_add (GTK_CONTAINER(window), frame);
+  
+  hbox = gtk_hbox_new(FALSE, 2);
+  
+  time_t now = time( NULL);
+
+    struct tm now_tm = *gmtime( &now );
+    struct tm then_tm = now_tm;
+    then_tm.tm_hour += strtol(datetime->time_diff,NULL,10);
+/*    if(then_tm.tm_hour > 23){*/
+/*      then_tm.tm_hour += -24;*/
+/*    }*/
+    mktime( &then_tm);      // normalize it
+
+/*  g_get_current_time(&timeval);*/
+/*  if(datetime->time_diff != "00"){*/
+/*	//multiply 1 hour with whatever is set as timezone difference*/
+/*     g_time_val_add(&timeval,3600000000 * strtol(datetime->time_diff,NULL,0));*/
+/*  }*/
+/*  current = localtime((time_t *)&timeval.tv_sec);*/
+  current = localtime(&then_tm);
+  utf8str = datetime_do_utf8strftime(datetime->time_format, current);
+  //gtk_label_set_text(GTK_LABEL(datetime->time_label), utf8str);
+  worldclock = gtk_label_new(_(utf8str));
+  g_free(utf8str);
+  gtk_misc_set_alignment(GTK_MISC (worldclock), 0, 0.5);
+
 
   cal = gtk_calendar_new();
     display_options = GTK_CALENDAR_SHOW_HEADING |
@@ -408,7 +439,9 @@ static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
     GTK_CALENDAR_SHOW_DAY_NAMES;
 
   gtk_calendar_display_options(GTK_CALENDAR (cal), display_options);
-  gtk_container_add (GTK_CONTAINER(frame), GTK_CALENDAR (cal));
+  gtk_box_pack_start(GTK_BOX(hbox), GTK_CALENDAR (cal), FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), worldclock, FALSE, FALSE, 0);
+  //gtk_container_add (GTK_CONTAINER(frame), GTK_CALENDAR (cal));
 
   g_signal_connect_after(G_OBJECT(window), "realize",
       G_CALLBACK(on_calendar_realized),
@@ -419,6 +452,9 @@ static GtkWidget * pop_calendar_window(t_datetime *datetime, int orientation)
   g_signal_connect(GTK_CALENDAR (cal), "day_selected",
       G_CALLBACK (calendar_day_selected),
       &calendar_data);
+  //gtk_box_pack_start(GTK_BOX(frame), hbox, FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER(window), hbox);
+
   gtk_widget_show_all(window);
 
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(datetime->button), TRUE);
@@ -482,7 +518,8 @@ static void datetime_update_time_font(t_datetime *datetime)
 }
 
 static void datetime_set_update_interval(t_datetime *datetime)
-{
+{  
+
   /* a custom date format could specify seconds */
   gboolean date_has_seconds = datetime_format_has_seconds(datetime->date_format);
   gboolean time_has_seconds = datetime_format_has_seconds(datetime->time_format);
@@ -560,11 +597,9 @@ void datetime_apply_layout(t_datetime *datetime, t_layout layout)
     case LAYOUT_TIME_DATE:
       gtk_box_reorder_child(GTK_BOX(datetime->vbox), datetime->time_label, 0);
       gtk_box_reorder_child(GTK_BOX(datetime->vbox), datetime->date_label, 1);
-      gtk_box_reorder_child(GTK_BOX(datetime->vbox), datetime->startofweek_label, 2);
       break;
 
     default:
-      gtk_box_reorder_child(GTK_BOX(datetime->vbox), datetime->startofweek_label, 2);
       gtk_box_reorder_child(GTK_BOX(datetime->vbox), datetime->time_label, 1);
       gtk_box_reorder_child(GTK_BOX(datetime->vbox), datetime->date_label, 0);
   }
@@ -599,8 +634,7 @@ void datetime_apply_font(t_datetime *datetime,
  */
 void datetime_apply_format(t_datetime *datetime,
     const gchar *date_format,
-    const gchar *time_format,
-    const gchar *startofweek)
+    const gchar *time_format)
 {
   if (datetime == NULL)
     return;
@@ -616,14 +650,14 @@ void datetime_apply_format(t_datetime *datetime,
     g_free(datetime->time_format);
     datetime->time_format = g_strdup(time_format);
   }
-  
-  if (startofweek != NULL)
-  {
-    g_free(datetime->startofweek);
-    datetime->startofweek = g_strdup(startofweek);
-  }
 
   datetime_set_update_interval(datetime);
+}
+
+void datetime_apply_time_diff(t_datetime *datetime, const gchar *time_diff)
+{
+    g_free(datetime->time_diff);
+    datetime->time_diff = g_strdup(time_diff);
 }
 
 /*
@@ -645,7 +679,7 @@ static void datetime_read_rc_file(XfcePanelPlugin *plugin, t_datetime *dt)
   gchar *file;
   XfceRc *rc = NULL;
   t_layout layout;
-  const gchar *date_font, *time_font, *date_format, *time_format, *startofweek;
+  const gchar *date_font, *time_font, *date_format, *time_format, *time_diff;
 
   /* load defaults */
   layout = LAYOUT_DATE_TIME;
@@ -653,7 +687,7 @@ static void datetime_read_rc_file(XfcePanelPlugin *plugin, t_datetime *dt)
   time_font = "Bitstream Vera Sans 8";
   date_format = "%Y-%m-%d";
   time_format = "%H:%M";
-  startofweek = "Sunday";
+  time_diff = "00";
 
   /* open file */
   if((file = xfce_panel_plugin_lookup_rc_file(plugin)) != NULL)
@@ -668,7 +702,7 @@ static void datetime_read_rc_file(XfcePanelPlugin *plugin, t_datetime *dt)
       time_font   = xfce_rc_read_entry(rc, "time_font", time_font);
       date_format = xfce_rc_read_entry(rc, "date_format", date_format);
       time_format = xfce_rc_read_entry(rc, "time_format", time_format);
-      startofweek = xfce_rc_read_entry(rc, "startofweek", startofweek);
+      time_diff = xfce_rc_read_entry(rc, "time_diff", time_diff);
     }
   }
 
@@ -676,7 +710,7 @@ static void datetime_read_rc_file(XfcePanelPlugin *plugin, t_datetime *dt)
   time_font   = g_strdup(time_font);
   date_format = g_strdup(date_format);
   time_format = g_strdup(time_format);
-  startofweek = g_strdup(startofweek);
+  time_diff = g_strdup(time_diff);
 
   if(rc != NULL)
     xfce_rc_close(rc);
@@ -684,7 +718,8 @@ static void datetime_read_rc_file(XfcePanelPlugin *plugin, t_datetime *dt)
   /* set values in dt struct */
   datetime_apply_layout(dt, layout);
   datetime_apply_font(dt, date_font, time_font);
-  datetime_apply_format(dt, date_format, time_format,startofweek);
+  datetime_apply_format(dt, date_format, time_format);
+  datetime_apply_time_diff(dt, time_diff);
 }
 
 /*
@@ -708,7 +743,7 @@ void datetime_write_rc_file(XfcePanelPlugin *plugin, t_datetime *dt)
     xfce_rc_write_entry(rc, "time_font", dt->time_font);
     xfce_rc_write_entry(rc, "date_format", dt->date_format);
     xfce_rc_write_entry(rc, "time_format", dt->time_format);
-    xfce_rc_write_entry(rc, "startofweek", dt->startofweek);
+    xfce_rc_write_entry(rc, "time_diff", dt->time_diff);
 
     xfce_rc_close(rc);
   }
@@ -732,22 +767,18 @@ static void datetime_create_widget(t_datetime * datetime)
   /* create time and date lines */
   datetime->time_label = gtk_label_new("");
   datetime->date_label = gtk_label_new("");
-  datetime->startofweek_label = gtk_label_new("");
 
   gtk_label_set_justify(GTK_LABEL(datetime->time_label), GTK_JUSTIFY_CENTER);
   gtk_label_set_justify(GTK_LABEL(datetime->date_label), GTK_JUSTIFY_CENTER);
-  gtk_label_set_justify(GTK_LABEL(datetime->startofweek_label), GTK_JUSTIFY_CENTER);
 
   /* add time and date lines to the vbox */
   gtk_box_pack_start(GTK_BOX(datetime->vbox),
       datetime->time_label, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(datetime->vbox),
       datetime->date_label, FALSE, FALSE, 0);
-  gtk_box_pack_start(GTK_BOX(datetime->vbox),
-      datetime->startofweek_label, FALSE, FALSE, 0);
+
   gtk_box_reorder_child(GTK_BOX(datetime->vbox), datetime->time_label, 0);
   gtk_box_reorder_child(GTK_BOX(datetime->vbox), datetime->date_label, 1);
-  gtk_box_reorder_child(GTK_BOX(datetime->vbox), datetime->startofweek_label, 2);
 
   /* connect widget signals to functions */
   g_signal_connect(datetime->button, "button-press-event",

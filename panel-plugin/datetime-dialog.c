@@ -3,6 +3,7 @@
  *  Copyright (C) 2003 Choe Hwanjin(krisna@kldp.org)
  *  Copyright (c) 2006 Remco den Breeje <remco@sx.mine.nu>
  *  Copyright (c) 2008 Diego Ongaro <ongardie@gmail.com>
+ *  Copyright (c) 2012 Fabian Kromer <fabian.kromer@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Library General Public License as published
@@ -44,9 +45,32 @@ static const gchar *layout_strs[] = {
   N_("Date only"),
   N_("Time only")
 };
-static const gchar *startofweek_strs[] = {
-  N_("Monday"),
-  N_("Sunday")
+static const gchar *time_diff_strs[] = {
+  N_("-12"),
+  N_("-11"),
+  N_("-10"),
+  N_("-09"),
+  N_("-08"),
+  N_("-07"),
+  N_("-06"),
+  N_("-05"),
+  N_("-04"),
+  N_("-03"),
+  N_("-02"),
+  N_("-01"),
+  N_(" 00"),
+  N_("+01"),
+  N_("+02"),
+  N_("+03"),
+  N_("+04"),
+  N_("+05"),
+  N_("+06"),
+  N_("+07"),
+  N_("+08"),
+  N_("+09"),
+  N_("+10"),
+  N_("+11"),
+  N_("+12")
 };
 
 typedef enum {
@@ -101,11 +125,34 @@ static const dt_combobox_item dt_combobox_time[] = {
 };
 #define DT_COMBOBOX_TIME_COUNT (sizeof(dt_combobox_time)/sizeof(dt_combobox_item))
 
-static const dt_combobox_item dt_combobox_startofweek[] = {
-  { "Monday",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
-  { "Sunday",         DT_COMBOBOX_ITEM_TYPE_STANDARD  }
+static const dt_combobox_item dt_combobox_time_diff[] = {
+  { "-12",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-11",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-10",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-09",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-08",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-07",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-06",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-05",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-04",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-03",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-02",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "-01",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { " 00",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+01",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+02",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+03",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+04",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+05",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+06",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+07",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+08",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+09",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+10",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+11",         DT_COMBOBOX_ITEM_TYPE_STANDARD  },
+  { "+12",         DT_COMBOBOX_ITEM_TYPE_STANDARD  }
 };
-#define DT_COMBOBOX_STARTOFWEEK_COUNT (sizeof(dt_combobox_startofweek)/sizeof(dt_combobox_startofweek))
+#define DT_COMBOBOX_time_diff_COUNT (sizeof(dt_combobox_time_diff)/sizeof(dt_combobox_time_diff))
 
 /*
  * Example timestamp to show in the dialog.
@@ -262,7 +309,7 @@ date_format_changed(GtkComboBox *cbox, t_datetime *dt)
     case DT_COMBOBOX_ITEM_TYPE_STANDARD:
       /* hide custom text entry box and tell datetime which format is selected */
       gtk_widget_hide(dt->date_format_entry);
-      datetime_apply_format(dt, dt_combobox_date[active].item, NULL, NULL);
+      datetime_apply_format(dt, dt_combobox_date[active].item, NULL);
       break;
     case DT_COMBOBOX_ITEM_TYPE_CUSTOM:
       /* initialize custom text entry box with current format and show the box */
@@ -289,7 +336,7 @@ time_format_changed(GtkComboBox *cbox, t_datetime *dt)
     case DT_COMBOBOX_ITEM_TYPE_STANDARD:
       /* hide custom text entry box and tell datetime which format is selected */
       gtk_widget_hide(dt->time_format_entry);
-      datetime_apply_format(dt, NULL, dt_combobox_time[active].item, NULL);
+      datetime_apply_format(dt, NULL, dt_combobox_time[active].item);
       break;
     case DT_COMBOBOX_ITEM_TYPE_CUSTOM:
       /* initialize custom text entry box with current format and show the box */
@@ -307,12 +354,12 @@ time_format_changed(GtkComboBox *cbox, t_datetime *dt)
  * Read start of week from combobox and set sensitivity
  */
 static void
-startofweek_changed(GtkComboBox *cbox, t_datetime *dt)
+time_diff_changed(GtkComboBox *cbox, t_datetime *dt)
 {
   const gint active = gtk_combo_box_get_active(cbox);
 
-      gtk_widget_hide(dt->startofweek_format_entry);
-      datetime_apply_format(dt, NULL,NULL, dt_combobox_startofweek[active].item);
+      gtk_widget_hide(dt->time_diff_format_entry);
+      datetime_apply_time_diff(dt, dt_combobox_time_diff[active].item);
 
   datetime_update(dt);
 }
@@ -328,11 +375,11 @@ datetime_entry_change_cb(GtkWidget *widget, GdkEventFocus *ev, t_datetime *dt)
   if (format != NULL)
   {
     if(widget == dt->date_format_entry)         /* date */
-      datetime_apply_format(dt, format, NULL, NULL);
+      datetime_apply_format(dt, format, NULL);
     else if(widget == dt->time_format_entry)    /* or time */
-      datetime_apply_format(dt, NULL, format, NULL);
-    else if(widget == dt->startofweek_format_entry)
-      datetime_apply_format(dt,NULL,NULL,format);
+      datetime_apply_format(dt, NULL, format);
+    else if(widget == dt->time_diff_format_entry)
+      datetime_apply_time_diff(dt,format);
   }
   datetime_update(dt);
   return FALSE;
@@ -383,7 +430,7 @@ datetime_properties_dialog(XfcePanelPlugin *plugin, t_datetime * datetime)
             *layout_combobox,
             *time_combobox,
             *date_combobox,
-            *startofweek_combobox,
+            *time_diff_combobox,
             *label,
             *button,
             *entry,
@@ -652,65 +699,10 @@ datetime_properties_dialog(XfcePanelPlugin *plugin, t_datetime * datetime)
 
   gtk_widget_show_all(datetime->time_frame);
 
-   /*
-   * startofweek frame
-   */
-/*  datetime->startofweek_frame = xfce_create_framebox(_("Start of week"), &bin);*/
-/*  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox), datetime->startofweek_frame,*/
-/*      FALSE, FALSE, 0);*/
-/*  gtk_container_set_border_width(GTK_CONTAINER(datetime->startofweek_frame), 6);*/
-
-  /* vbox */
-/*  vbox = gtk_vbox_new(FALSE, 8);*/
-/*  gtk_container_add(GTK_CONTAINER(bin),vbox);*/
-
-/*#if USE_GTK_TOOLTIP_API*/
-  /* tooltip label */
-/*  str = g_markup_printf_escaped("<span style=\"italic\">%s</span>",*/
-/*                                _("The Start of week will appear in a tooltip."));*/
-/*  datetime->startofweek_tooltip_label = gtk_label_new(str);*/
-/*  g_free(str);*/
-/*  gtk_label_set_use_markup(GTK_LABEL(datetime->startofweek_tooltip_label), TRUE);*/
-/*  gtk_misc_set_alignment(GTK_MISC(datetime->startofweek_tooltip_label), 0.0f, 0.0f);*/
-/*  gtk_box_pack_start(GTK_BOX(vbox), datetime->startofweek_tooltip_label, FALSE, FALSE, 0);*/
-/*#endif*/
-
-  /* hbox */
-/*  hbox = gtk_hbox_new(FALSE, 2);*/
-/*  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);*/
-
-  /* format label */
-/*  label = gtk_label_new(_("Day:"));*/
-/*  gtk_misc_set_alignment(GTK_MISC (label), 0, 0.5);*/
-/*  gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);*/
-/*  gtk_size_group_add_widget(sg, label);*/
-
-  /* format combobox */
-/*  startofweek_combobox = gtk_combo_box_new_text();*/
-/*  gtk_box_pack_start(GTK_BOX(hbox), startofweek_combobox, TRUE, TRUE, 0);*/
-
-/*  g_signal_connect(G_OBJECT(startofweek_combobox), "changed",*/
-/*      G_CALLBACK(startofweek_changed), datetime);*/
-/*  datetime->startofweek_format_combobox = startofweek_combobox;*/
-
-  /* hbox */
-/*  hbox = gtk_hbox_new(FALSE, 2);*/
-/*  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);*/
-
-  /* format entry */
-/*  entry = gtk_entry_new();*/
-/*  gtk_entry_set_text(GTK_ENTRY(entry), datetime->startofweek);*/
-/*  gtk_box_pack_end(GTK_BOX(hbox), entry, FALSE, FALSE, 0);*/
-/*  g_signal_connect (G_OBJECT(entry), "focus-out-event",*/
-/*                    G_CALLBACK (datetime_entry_change_cb), datetime);*/
-/*  datetime->startofweek_format_entry = entry;*/
-
-/*  gtk_widget_show_all(datetime->startofweek_frame);*/
-  
 /*
-   * startofweek frame (new)
+   * time_diff frame (new)
    */
-  frame = xfce_create_framebox(_("Start of Week"), &bin);
+  frame = xfce_create_framebox(_("Time difference:"), &bin);
   gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox), frame,
       FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(frame), 6);
@@ -730,22 +722,23 @@ datetime_properties_dialog(XfcePanelPlugin *plugin, t_datetime * datetime)
   gtk_size_group_add_widget(sg, label);
 
   /* Layout combobox */
-  startofweek_combobox = gtk_combo_box_new_text();
-  gtk_box_pack_start(GTK_BOX(hbox), startofweek_combobox, TRUE, TRUE, 0);
-  /*TODO: replace this stupid hardcoding (2) with the actual array size  */
-  for(i=0; i < 2; i++)
-    gtk_combo_box_append_text(GTK_COMBO_BOX(startofweek_combobox), _(startofweek_strs[i]));
+  time_diff_combobox = gtk_combo_box_new_text();
+  gtk_box_pack_start(GTK_BOX(hbox), time_diff_combobox, TRUE, TRUE, 0);
 
-  if (strcmp(datetime->startofweek,"Monday")==0)
-  {
-  gtk_combo_box_set_active(GTK_COMBO_BOX(startofweek_combobox), 0);
-  }
-  else
-  {
-  gtk_combo_box_set_active(GTK_COMBO_BOX(startofweek_combobox), 1);
-  }
-  g_signal_connect(G_OBJECT(startofweek_combobox), "changed",
-      G_CALLBACK(startofweek_changed), datetime);
+  int len=sizeof(time_diff_strs)/sizeof*(time_diff_strs);
+  for(i=0; i < len; i++)
+    gtk_combo_box_append_text(GTK_COMBO_BOX(time_diff_combobox), _(time_diff_strs[i]));
+    gtk_combo_box_set_active(GTK_COMBO_BOX(time_diff_combobox), strtol(datetime->time_diff,NULL,10)+12);
+/*  if (strcmp(datetime->time_diff,"Monday")==0)*/
+/*  {*/
+/*  gtk_combo_box_set_active(GTK_COMBO_BOX(time_diff_combobox), i);*/
+/*  }*/
+/*  else*/
+/*  {*/
+/*  gtk_combo_box_set_active(GTK_COMBO_BOX(time_diff_combobox), i);*/
+/*  }*/
+  g_signal_connect(G_OBJECT(time_diff_combobox), "changed",
+      G_CALLBACK(time_diff_changed), datetime);
 
   /* show frame */
   gtk_widget_show_all(frame);
@@ -758,7 +751,7 @@ datetime_properties_dialog(XfcePanelPlugin *plugin, t_datetime * datetime)
   datetime_layout_changed(GTK_COMBO_BOX(layout_combobox), datetime);
   date_format_changed(GTK_COMBO_BOX(date_combobox), datetime);
   time_format_changed(GTK_COMBO_BOX(time_combobox), datetime);
-  startofweek_changed(GTK_COMBO_BOX(startofweek_combobox), datetime);
+  time_diff_changed(GTK_COMBO_BOX(time_diff_combobox), datetime);
   /* show dialog */
   gtk_widget_show(dlg);
 }

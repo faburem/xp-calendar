@@ -3,6 +3,7 @@
  *  Copyright (C) 2003 Choe Hwanjin(krisna@kldp.org)
  *  Copyright (c) 2006 Remco den Breeje <remco@sx.mine.nu>
  *  Copyright (c) 2008 Diego Ongaro <ongardie@gmail.com>
+ *  Copyright (c) 2012 Fabian Kromer <fabian.kromer@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Library General Public License as published
@@ -48,7 +49,7 @@ typedef struct {
   GtkWidget *vbox;
   GtkWidget *date_label;
   GtkWidget *time_label;
-  GtkWidget *startofweek_label;
+  GtkWidget *time_diff_label;
   guint update_interval;  /* time between updates in milliseconds */
   guint timeout_id;
 #if USE_GTK_TOOLTIP_API
@@ -62,7 +63,7 @@ typedef struct {
   gchar *date_format;
   gchar *time_format;
 //  add new start of week setting
-  gchar *startofweek;
+  gchar *time_diff;
   t_layout layout;
 
   /* option widgets */
@@ -84,12 +85,12 @@ typedef struct {
   GtkWidget *time_format_entry;
 //  add new start of week widgets
 #if USE_GTK_TOOLTIP_API
-  GtkWidget *startofweek_tooltip_label;
+  GtkWidget *time_diff_tooltip_label;
 #endif
-  GtkWidget *startofweek_frame;
-  GtkWidget *startofweek_hbox;
-  GtkWidget *startofweek_format_combobox;
-  GtkWidget *startofweek_format_entry;
+  GtkWidget *time_diff_frame;
+  GtkWidget *time_diff_hbox;
+  GtkWidget *time_diff_format_combobox;
+  GtkWidget *time_diff_format_entry;
 
   /* popup calendar */
   GtkWidget *cal;
@@ -111,8 +112,11 @@ datetime_apply_font(t_datetime *datetime,
 void
 datetime_apply_format(t_datetime *datetime,
     const gchar *date_format,
-    const gchar *time_format,
-    const gchar *startofweek);
+    const gchar *time_format);
+
+void
+datetime_apply_time_diff(t_datetime *datetime,
+    const gchar *time_diff);
 
 void
 datetime_apply_layout(t_datetime *datetime,
